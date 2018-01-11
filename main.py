@@ -24,6 +24,14 @@ def index():
 
 @app.route('/blog', methods=['POST', 'GET'])
 def show_blog():
+    blogs = Blog.query.all()
+    return render_template('blog.html', title="Build a Blog!", blogs=blogs)
+    
+
+@app.route('/newpost', methods=['POST', 'GET'])
+def create_new_post():
+    if request.method == 'GET':
+        return render_template('new_post.html', title="New Blog Entry")
 
     if request.method == 'POST':
         blog_title = request.form['title']
@@ -46,10 +54,9 @@ def show_blog():
         
         else:
             blogs = Blog.query.all()
-            return render_template('blog.html', title="Build a Blog!", blogs=blogs,
+            return render_template('new_post.html', title="Build a Blog!", blogs=blogs,
                 blog_title=blog_title, title_error=title_error, 
                 blog_body=blog_body, body_error=body_error)
-
 
 if __name__ == '__main__':
     app.run()
