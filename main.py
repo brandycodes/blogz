@@ -24,10 +24,17 @@ def index():
 
 @app.route('/blog', methods=['POST', 'GET'])
 def show_blog():
-    blogs = Blog.query.all()
-    return render_template('blog.html', title="Build a Blog!", blogs=blogs)
     
+    if request.args:
+        blog_id = request.args.get('id')
+        blogs = Blog.query.filter_by(id=blog_id).all()
+        return render_template('single_post.html', blogs=blogs)
 
+    else:
+        blogs = Blog.query.all()
+        return render_template('blog.html', title="Build a Blog!", blogs=blogs)
+
+    
 @app.route('/newpost', methods=['POST', 'GET'])
 def create_new_post():
     if request.method == 'GET':
@@ -49,8 +56,7 @@ def create_new_post():
         if not title_error and not body_error:
             db.session.add(new_blog)
             db.session.commit()
-            blogs = Blog.query.all()
-            return render_template('blog.html', title="Build a Blog!", blogs=blogs)
+            return redirect('/blog?id={}'.format(new_blog.id))
         
         else:
             blogs = Blog.query.all()
