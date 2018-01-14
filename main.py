@@ -25,29 +25,29 @@ class Blog(db.Model):
 class User(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(120), unique=True)
+    username = db.Column(db.String(120), unique=True)
     password = db.Column(db.String(120))
     blogs = db.relationship('Blog', backref='author')
 
-    def __init__(self, email, password):
-        self.email = email
+    def __init__(self, username, password):
+        self.username = username
         self.password = password
 
 @app.before_request
 def require_login():
     allowed_routes = ['login', 'register']
-    if request.endpoint not in allowed_routes and 'email' not in session:
+    if request.endpoint not in allowed_routes and 'username' not in session:
         return redirect('/login')
 
 
 @app.route('/login', methods=['POST', 'GET'])
 def login():
     if request.method == 'POST':
-        email = request.form['email']
+        username = request.form['username']
         password = request.form['password']
-        user = User.query.filter_by(email=email).first()
+        user = User.query.filter_by(username=username).first()
         if user and user.password == password:
-            session['email'] = email
+            session['username'] = username
             flash('Logged in')
             return redirect('/')
         else:
@@ -59,28 +59,64 @@ def login():
 @app.route('/register', methods=['POST', 'GET'])
 def register():
     if request.method == 'POST':
-        email = request.form['email']
+        username = request.form['username']
         password = request.form['password']
         verify = request.form['verify']
 
-        #TODO - validate user's data
-    
-        existing_user = User.query.filter_by(email=email).first()
-        if not existing_user:
-            new_user = User(email,password)
+        username_error = ''
+        password_error = ''
+        verify_error = ''
+        space = ' '
+
+        #make sure username doesn't already exist, pass in error if it does.
+        existing_user = User.query.filter_by(username=username).first()
+        if existing_user:
+            username_error = "Username already exists, please choose a new one."
+            password = ''
+            verify = ''
+
+        #validate username
+        if len(username) < 3 or len(username) > 20 or username.count(space) != 0:
+            username_error = 'Please enter a valid username (3-20 characters, no spaces).'
+            password = ''
+            verify = ''
+
+        #validate password
+        if len(password) < 3 or len(password) >20 or password.count(space) != 0:
+            password_error = "Please enter a valid password (3-20 characters, no spaces)."
+            password = ''
+            verify = ''
+        
+        #validate verify
+        if verify != password:
+            verify_error = "Password verification must match."
+            password = ''
+            verify = ''
+
+        #if no errors, create new user and log them in
+        if not username_error and not password_error and not verify_error:
+            new_user = User(username,password)
             db.session.add(new_user)
             db.session.commit()
-            session['email'] = email
+            session['username'] = username
+            flash("Account created!")
             return redirect('/')
+        
+        #if there is an error, re-render the template with relevant error messages.
         else:
-            #TODO - user better response messaging
-            return "<h1>Duplicate user</h1>"
+            flash("Account could not be created, see error message below.", 'error')
+            return render_template('register.html', 
+                title="Register an Account on Blogz!",
+                username=username, username_error=username_error,
+                password=password, password_error=password_error,
+                verify=verify, verify_error=verify_error)
     
     return render_template('register.html')
 
 @app.route('/logout')
-def logoout():
-    del session['email'] 
+def logout():
+    del session['username']
+    flash("Logged out!")
     return redirect('/')
 
 
@@ -107,7 +143,7 @@ def create_new_post():
     if request.method == 'GET':
         return render_template('new_post.html', title="New Blog Entry")
 
-    author = User.query.filter_by(email=session['email']).first()
+    author = User.query.filter_by(username=session['username']).first()
 
     if request.method == 'POST':
         blog_title = request.form['title']
