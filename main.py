@@ -35,7 +35,7 @@ class User(db.Model):
 
 @app.before_request
 def require_login():
-    allowed_routes = ['index', 'login', 'signup', 'blog']
+    allowed_routes = ['index', 'login', 'signup', 'show_blog', 'signup.html']
     if request.endpoint not in allowed_routes and 'username' not in session:
         flash("Please log into your account.")
         return redirect('/login')
@@ -111,7 +111,7 @@ def signup():
             db.session.commit()
             session['username'] = username
             flash("Account created!")
-            return redirect('/')
+            return redirect('/newpost')
         
         #if there is an error, re-render the template with relevant error messages.
         else:
